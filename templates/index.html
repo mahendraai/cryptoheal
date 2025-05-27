@@ -1,1 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>MySQL Crypto Scanner</title>
+  <style>
+    body { font-family: Arial; padding: 2rem; }
+    textarea { width: 100%; height: 200px; }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 1rem; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+  </style>
+</head>
+<body>
+  <h1>🛡 AI-Powered MySQL Crypto Usage Scanner</h1>
+  <form method="post">
+    <label>MySQL Host: <input name="host" required></label><br>
+    <label>User: <input name="user" required></label><br>
+    <label>Password: <input name="password" required type="password"></label><br>
+    <label>Database: <input name="database" required></label><br>
+    <label>OpenAI API Key: <input name="openai_key" required type="password"></label><br><br>
+    <button type="submit">Scan Database</button>
+  </form>
 
+  {% if result %}
+    {% if result.error %}
+      <h3 style="color:red;">Error: {{ result.error }}</h3>
+    {% else %}
+      <h2> Detected Crypto Functions</h2>
+      <table>
+        <tr><th>Name</th><th>Definition</th></tr>
+        {% for fn in result.crypto_funcs %}
+        <tr><td>{{ fn[0] }}</td><td>{{ fn[1][:100] }}...</td></tr>
+        {% endfor %}
+      </table>
+
+      <h2> Sensitive Columns</h2>
+      <table>
+        <tr><th>Schema</th><th>Table</th><th>Column</th><th>Type</th></tr>
+        {% for col in result.sensitive_cols %}
+        <tr><td>{{ col[0] }}</td><td>{{ col[1] }}</td><td>{{ col[2] }}</td><td>{{ col[3] }}</td></tr>
+        {% endfor %}
+      </table>
+
+      <h2>AI Security Recommendations</h2>
+      <textarea readonly>{{ result.ai_report }}</textarea>
+    {% endif %}
+  {% endif %}
+</body>
+</html>
