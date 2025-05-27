@@ -1,5 +1,5 @@
 import mysql.connector
-import openai
+from openai import OpenAI
 
 def scan_mysql(db_config, openai_key):
     conn = mysql.connector.connect(**db_config)
@@ -33,8 +33,7 @@ def scan_mysql(db_config, openai_key):
     cursor.close()
     conn.close()
 
-    # Call OpenAI
-    openai.api_key = openai_key
+    # Call OpenAI (modern SDK)
     prompt = f"""
     You are a MySQL security expert. Here's the scan data:
 
@@ -47,7 +46,8 @@ def scan_mysql(db_config, openai_key):
     Analyze the security of this schema. Recommend fixes.
     """
 
-    response = openai.ChatCompletion.create(
+    client = OpenAI(api_key=openai_key)
+    response = client.chat.completions.create(
         model="gpt-4",
         messages=[
             {"role": "system", "content": "You are a MySQL encryption auditor."},
@@ -55,5 +55,5 @@ def scan_mysql(db_config, openai_key):
         ]
     )
 
-    ai_analysis = response['choices'][0]['message']['content']
+    ai_analysis = response.choices[0].message.content
     return crypto_functions, sensitive_columns, ai_analysis
