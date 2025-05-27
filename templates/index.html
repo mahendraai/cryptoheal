@@ -10,7 +10,7 @@
   </style>
 </head>
 <body>
-  <h1>🛡 AI-Powered MySQL Crypto Usage Scanner</h1>
+  <h1>🛡️ AI-Powered MySQL Crypto Usage Scanner</h1>
   <form method="post">
     <label>MySQL Host: <input name="host" required></label><br>
     <label>User: <input name="user" required></label><br>
@@ -24,7 +24,7 @@
     {% if result.error %}
       <h3 style="color:red;">Error: {{ result.error }}</h3>
     {% else %}
-      <h2> Detected Crypto Functions</h2>
+      <h2>🔍 Detected Crypto Functions</h2>
       <table>
         <tr><th>Name</th><th>Definition</th></tr>
         {% for fn in result.crypto_funcs %}
@@ -32,7 +32,7 @@
         {% endfor %}
       </table>
 
-      <h2> Sensitive Columns</h2>
+      <h2>🔐 Sensitive Columns</h2>
       <table>
         <tr><th>Schema</th><th>Table</th><th>Column</th><th>Type</th></tr>
         {% for col in result.sensitive_cols %}
@@ -40,7 +40,7 @@
         {% endfor %}
       </table>
 
-      <h2>AI Security Recommendations</h2>
+      <h2>🤖 AI Security Recommendations</h2>
       <textarea readonly>{{ result.ai_report }}</textarea>
     {% endif %}
   {% endif %}
