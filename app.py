@@ -1,35 +1,59 @@
-from flask import Flask, render_template, request
-from scanner import scan_mysql
 import mysql.connector
-import openai
+from openai import OpenAI
 
-app = Flask(__name__)
+def scan_mysql(db_config, openai_key):
+    conn = mysql.connector.connect(**db_config)
+    cursor = conn.cursor()
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    result = None
-    if request.method == 'POST':
-        host = request.form['host']
-        user = request.form['user']
-        password = request.form['password']
-        database = request.form['database']
-        openai_key = request.form['openai_key']
+    # Scan crypto usage
+    cursor.execute("""
+    SELECT ROUTINE_NAME, ROUTINE_DEFINITION 
+    FROM INFORMATION_SCHEMA.ROUTINES 
+    WHERE ROUTINE_DEFINITION LIKE '%AES_ENCRYPT%' 
+       OR ROUTINE_DEFINITION LIKE '%SHA2%' 
+       OR ROUTINE_DEFINITION LIKE '%MD5%' 
+       OR ROUTINE_DEFINITION LIKE '%ENCODE%' 
+       OR ROUTINE_DEFINITION LIKE '%DECODE%' 
+       OR ROUTINE_DEFINITION LIKE '%DES_ENCRYPT%';
+    """)
+    crypto_functions = cursor.fetchall()
 
-        db_config = {
-            "host": host,
-            "user": user,
-            "password": password,
-            "database": database
-        }
+    # Scan sensitive columns
+    cursor.execute("""
+    SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, DATA_TYPE 
+    FROM INFORMATION_SCHEMA.COLUMNS 
+    WHERE COLUMN_NAME LIKE '%password%' 
+       OR COLUMN_NAME LIKE '%ssn%' 
+       OR COLUMN_NAME LIKE '%credit%' 
+       OR COLUMN_NAME LIKE '%card%' 
+       OR COLUMN_NAME LIKE '%secret%';
+    """)
+    sensitive_columns = cursor.fetchall()
 
-        try:
-            crypto_funcs, sensitive_cols, ai_report = scan_mysql(db_config, openai_key)
-            result = {
-                "crypto_funcs": crypto_funcs,
-                "sensitive_cols": sensitive_cols,
-                "ai_report": ai_report
-            }
-        except Exception as e:
-            result = {"error": str(e)}
+    cursor.close()
+    conn.close()
 
-    return render_template('index.html', result=result)
+    # Call OpenAI (modern SDK)
+    prompt = f"""
+    You are a MySQL security expert. Here's the scan data:
+
+    1. Crypto functions:
+    {crypto_functions}
+
+    2. Sensitive columns:
+    {sensitive_columns}
+
+    Analyze the security of this schema. Recommend fixes.
+    """
+
+    client = OpenAI(api_key=openai_key)
+    response = client.chat.completions.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You are a MySQL encryption auditor."},
+            {"role": "user", "content": prompt}
+        ]
+    )
+
+    ai_analysis = response.choices[0].message.content
+    return crypto_functions, sensitive_columns, ai_analysis
